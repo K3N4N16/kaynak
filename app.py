@@ -44,11 +44,16 @@ section[data-testid="stSidebar"] * { color: #dbe1f5 !important; }
 section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 { color: #a78bfa !important; font-weight: 700; }
 
 div[data-testid="stMetric"] {
-    background: rgba(124, 58, 237, 0.08);
-    border: 1px solid rgba(124, 58, 237, 0.25);
+    background: #ede9fe;
+    border: 1px solid #ddd6fe;
     border-radius: 12px; padding: 10px 14px;
 }
-div[data-testid="stMetricValue"] { color: #a78bfa !important; }
+div[data-testid="stMetricValue"], div[data-testid="stMetricValue"] * {
+    color: #6d28d9 !important; -webkit-text-fill-color: #6d28d9 !important;
+}
+div[data-testid="stMetricLabel"], div[data-testid="stMetricLabel"] * {
+    color: #4c1d95 !important; -webkit-text-fill-color: #4c1d95 !important;
+}
 
 /* ==== TÜM METİN GİRİŞ ALANLARI: BEYAZ ZEMİN + SİYAH YAZI (HER YERDE, SIDEBAR DAHİL) ==== */
 /* Bu kural bloğu, sidebar'ın genel "tüm yazıları açık renk yap" kuralından SONRA
@@ -144,31 +149,112 @@ div.stDownloadButton > button {
     border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 10px; font-weight: 600;
 }
 
-/* ---- ÇIKTI / SOHBET ALANI: BEYAZ ZEMİN, SİYAH YAZI (OKUNAKLILIK İÇİN) ---- */
+/* ============================================================
+   ANA İÇERİK PANELİ: SIDEBAR HARİÇ TÜM ANA ALAN BEYAZ ZEMİNLİ,
+   HER TÜRLÜ HTML / MARKDOWN / TABLO / KOD / LINK ÇIKTISI
+   OTOMATİK OLARAK SİYAH-OKUNAKLI RENGE ZORLANIR.
+   (Koyu tema sadece sidebar'da kalır; sayfa dışı çerçevede
+   koyu degrade görünür, ana panel bembeyaz bir "kağıt" gibidir.)
+   ============================================================ */
+div[data-testid="stMain"] .block-container,
+div[data-testid="stAppViewContainer"] > div:first-child .block-container {
+    background-color: #f8fafc !important;
+    border-radius: 20px;
+    padding: 28px 34px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Ana paneldeki TÜM markdown/metin çıktısını (st.markdown, st.write,
+   st.caption, st.info/success/warning/error, tablolar, linkler, kod,
+   expander başlıkları vb. - hepsi Streamlit'te stMarkdownContainer
+   içinde render edilir) koyu/okunaklı renge zorla. Butonlar ve
+   metrik kutuları farklı bileşenler olduğu için bundan etkilenmez. */
+div[data-testid="stMain"] [data-testid="stMarkdownContainer"],
+div[data-testid="stMain"] [data-testid="stMarkdownContainer"] * {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+div[data-testid="stMain"] [data-testid="stCaptionContainer"],
+div[data-testid="stMain"] [data-testid="stCaptionContainer"] * {
+    color: #475569 !important; -webkit-text-fill-color: #475569 !important;
+}
+
+/* Başlık gradyanının bozulmaması için özel istisna */
+div[data-testid="stMain"] .studio-title,
+div[data-testid="stMain"] .studio-title * {
+    -webkit-text-fill-color: transparent !important;
+}
+div[data-testid="stMain"] .studio-subtitle { color: #475569 !important; -webkit-text-fill-color: #475569 !important; }
+
+/* Linkler ana panelde net görünsün */
+div[data-testid="stMain"] .block-container a {
+    color: #6d28d9 !important; -webkit-text-fill-color: #6d28d9 !important;
+    text-decoration: underline;
+}
+
+/* Tablolar - kenarlık ve zebra çizgili okunaklı görünüm */
+div[data-testid="stMain"] .block-container table { border-collapse: collapse; width: 100%; }
+div[data-testid="stMain"] .block-container th {
+    background-color: #ede9fe !important; color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important; padding: 8px 10px; font-weight: 700;
+}
+div[data-testid="stMain"] .block-container td {
+    border: 1px solid #e2e8f0 !important; padding: 8px 10px;
+    background-color: #ffffff !important; color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+div[data-testid="stMain"] .block-container tr:nth-child(even) td { background-color: #f8fafc !important; }
+
+/* Blockquote (alıntı) stili */
+div[data-testid="stMain"] .block-container blockquote {
+    border-left: 4px solid #a78bfa; background-color: #f5f3ff !important;
+    padding: 8px 14px; border-radius: 6px; color: #0f172a !important;
+}
+
+/* Inline kod ve kod blokları - ana panelde her zaman kontrastlı */
+div[data-testid="stMain"] .block-container code {
+    color: #7c3aed !important; -webkit-text-fill-color: #7c3aed !important;
+    background-color: #ede9fe !important; padding: 1px 6px; border-radius: 4px;
+}
+div[data-testid="stMain"] .block-container pre {
+    background-color: #0f172a !important; border-radius: 10px !important;
+    border: 1px solid #1e293b !important;
+}
+div[data-testid="stMain"] .block-container pre code {
+    color: #e6e9f5 !important; -webkit-text-fill-color: #e6e9f5 !important;
+    background-color: transparent !important;
+}
+
+/* Expander (kopyalama kutusu vb.) başlığı ve içeriği */
+div[data-testid="stMain"] .block-container details {
+    background-color: #ffffff !important; border: 1px solid #e2e8f0 !important;
+    border-radius: 10px;
+}
+div[data-testid="stMain"] .block-container summary {
+    color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; font-weight: 600;
+}
+
+/* ---- SOHBET BALONLARI: HAFİF GÖLGELİ BEYAZ KART (PANEL İÇİNDE BELİRGİN) ---- */
 .stChatMessage {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 14px !important;
     padding: 10px 14px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
 }
-.stChatMessage p, .stChatMessage li, .stChatMessage span, .stChatMessage div,
-.stChatMessage h1, .stChatMessage h2, .stChatMessage h3, .stChatMessage strong {
-    color: #0f172a !important;
-}
-.stChatMessage code { color: #7c3aed !important; background-color: #f1f5f9 !important; }
-.stChatMessage pre { background-color: #0f172a !important; border-radius: 10px !important; }
-.stChatMessage pre code { color: #e6e9f5 !important; background-color: transparent !important; }
 
 /* Akıl yürütme kutusu - açık zemin, koyu yazı */
 .reasoning-container {
-    background-color: #f8fafc !important;
-    border: 1px solid #cbd5e1 !important;
+    background-color: #eef2ff !important;
+    border: 1px solid #c7d2fe !important;
     border-left: 4px solid #06b6d4 !important;
     border-radius: 10px; padding: 14px 16px;
     font-family: 'JetBrains Mono', monospace;
     color: #334155 !important; font-size: 0.85rem; margin-bottom: 10px;
 }
+.reasoning-container, .reasoning-container * { color: #334155 !important; -webkit-text-fill-color: #334155 !important; }
 
 .badge {
     display: inline-block; padding: 3px 10px; border-radius: 999px;
