@@ -9,10 +9,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Kapsamlı ve Profesyonel Karanlık Tema Tasarımı (CSS)
+# Okunabilirliği Artırılmış Şeffaf Tasarım (CSS)
 st.markdown("""
     <style>
+    /* Ana Ekran Arka Plan Ayarları */
     .main { background-color: #090b0e; color: #f1f5f9; }
+    
+    /* Input ve Form Alanları */
     .stTextArea textarea { background-color: #0f1219 !important; color: #ffffff !important; border: 1px solid #1e293b !important; border-radius: 8px; font-size: 1rem; }
     .stTextInput input { background-color: #0f1219 !important; color: #ffffff !important; border: 1px solid #1e293b !important; }
     
@@ -25,11 +28,36 @@ st.markdown("""
     }
     div.stButton > button:first-child:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4); }
     
-    /* Çıktı ve Akıl Yürütme Konteynerleri */
-    .chat-container { background-color: #0f1219; padding: 22px; border-radius: 10px; border: 1px solid #1e293b; border-left: 6px solid #3b82f6; margin-bottom: 20px; line-height: 1.7; }
-    .reasoning-container { background-color: #141822; padding: 15px; border-radius: 8px; border: 1px solid #334155; border-left: 4px solid #64748b; font-family: monospace; color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
+    /* Çıktı Alanı - Şeffaf ve Maksimum Okunabilir */
+    .chat-container { 
+        background-color: rgba(255, 255, 255, 0.03) !important; 
+        color: #f8fafc !important; 
+        padding: 22px; 
+        border-radius: 10px; 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-left: 6px solid #10b981; 
+        margin-bottom: 20px; 
+        line-height: 1.7;
+        font-size: 1.05rem;
+    }
+    
+    /* Akıl Yürütme Alanı - Şeffaf */
+    .reasoning-container { 
+        background-color: rgba(255, 255, 255, 0.01) !important; 
+        padding: 15px; 
+        border-radius: 8px; 
+        border: 1px solid rgba(255, 255, 255, 0.05); 
+        border-left: 4px solid #64748b; 
+        font-family: monospace; 
+        color: #94a3b8; 
+        font-size: 0.9rem; 
+        margin-bottom: 15px; 
+    }
     
     .studio-title { background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 2.5rem; }
+    
+    /* Metin Seçim Rengini Parlat */
+    ::selection { background: #10b981; color: white; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -37,16 +65,15 @@ st.markdown("<h1 class='studio-title'>⚡ Quantum AI Studio Pro v10.0</h1>", uns
 st.caption("Nvidia Bulut Motoru ile Entegre Genişletilmiş Dev Model Ordusu Konsolu")
 
 # --- HAFIZA (SESSION STATE) İLKLENDİRME ---
-# Sayfa her yenilendiğinde çıktıların kaybolmaması için hafıza kanallarını açıyoruz
 if "son_cevap" not in st.session_state:
     st.session_state["son_cevap"] = ""
 if "son_dusunme" not in st.session_state:
     st.session_state["son_dusunme"] = ""
+if "islem_tamamlandi" not in st.session_state:
+    st.session_state["islem_tamamlandi"] = False
 
 # --- STREAMLIT SECRETS BAĞLANTI KONTROLÜ ---
-api_key = ""
-if "NVIDIA_API_KEY" in st.secrets:
-    api_key = st.secrets["NVIDIA_API_KEY"]
+api_key = st.secrets.get("NVIDIA_API_KEY", "")
 
 # --- YAN MENÜ (SIDEBAR) KONTROLLERİ ---
 with st.sidebar:
@@ -60,23 +87,15 @@ with st.sidebar:
     st.markdown("---")
     st.header("🤖 Nvidia & Open-Source Model Ordusu")
     
-    # Nvidia bulutundaki bizzat Nvidia'nın kendi modelleri ve dev açık kaynak yapısı
     model_havuzu = {
-        # --- NVIDIA ÖZ MODELLERİ ---
         "Nvidia Llama 3.3 Nemotron Super (Hız & Performans Şampiyonu)": "nvidia/llama-3.3-nemotron-super",
         "Nvidia Nemotron 4 340B (Üstün Dil & Sentetik Veri Yeteneği)": "nvidia/nemotron-4-340b-instruct",
         "Nvidia NeVA 22B (Gelişmiş Görsel & Resim Analiz Motoru)": "nvidia/neva-22b",
         "Nvidia NV-Embed-QA (Gelişmiş Döküman & Veri Arama)": "nvidia/nv-embedqa-e5-v5",
-        
-        # --- DEEPSEEK MIMARISI ---
         "DeepSeek V4 Pro (En Gelişmiş Kod & Optimizasyon Canavarı)": "deepseek-ai/deepseek-v4-pro",
         "DeepSeek R1 (Maksimum Akıl Yürütme & Derin Düşünme)": "deepseek-ai/deepseek-r1",
-        
-        # --- META (LLAMA) SERİSİ ---
         "Llama 3.1 405B (Dünyanın En Büyük Açık Kaynak Modeli)": "meta/llama-3.1-405b-instruct",
         "Llama 3.2 90B Vision (Çoklu Mod & Arayüz Okuma)": "meta/llama-3.2-90b-vision-instruct",
-        
-        # --- DİĞER KOD VE BAĞLAM DEVLERİ ---
         "GLM 5.2 (Yüksek Bağlam & Kararlı Radyo/Metin Otomasyonu)": "z-ai/glm-5.2",
         "Qwen 2.5 72B (Hatasız Algoritma ve Kodlama Yapıları)": "qwen/qwen-2.5-72b-instruct",
         "Mistral Large 3 (Gelişmiş Akıl Yürütme Amiral Gemisi)": "mistralai/mistral-large-2407"
@@ -92,35 +111,32 @@ with st.sidebar:
 
 # --- ANA ÇALIŞMA ALANI ---
 kullanici_girdisi = st.text_area(
-    f"🛠️ Yapay zekaya iletmek istediğiniz görev veya komut:", 
-    height=230, 
+    "🛠️ Yapay zekaya iletmek istediğiniz görev veya komut:", 
+    height=180, 
     placeholder="Örn: Hazırladığımız radyo stüdyo mikseri HTML koduna uyumlu, şarkı geçiş efektlerini yöneten modern bir JavaScript kurgula..."
 )
 
 # Tetikleme Butonu
-if st.button("Kuantum Sürücüyü Tetikle ve Akışı Başlat"):
+tetiklendi = st.button("Kuantum Sürücüyü Tetikle ve Akışı Başlat")
+
+if tetiklendi:
     if not api_key:
         st.error("🚨 Hata: Sistemde tanımlı geçerli bir Nvidia API anahtarı bulunamadı!")
     elif not kullanici_girdisi.strip():
         st.warning("⚠️ Lütfen boş komut göndermeyin.")
     else:
         try:
-            # Nvidia Entegrasyon Ağ Geçidine Bağlantı
-            client = OpenAI(
-                base_url="https://integrate.api.nvidia.com/v1",
-                api_key=api_key
-            )
-            
+            client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
             st.info("🌐 Nvidia bulut tünelleri açıldı, canlı veri akışı senkronize ediliyor...")
             
-            # Dinamik canlı çıktılar için yer tutucular
+            # Dinamik yer tutucular (Eski mükerrer basımı engellemek için)
             reasoning_placeholder = st.empty()
             content_placeholder = st.empty()
             
             st.session_state["son_cevap"] = ""
             st.session_state["son_dusunme"] = ""
+            st.session_state["islem_tamamlandi"] = False
             
-            # İstek paketinin akışlı (stream=True) olarak gönderilmesi
             completion = client.chat.completions.create(
                 model=aktif_model,
                 messages=[
@@ -136,7 +152,7 @@ if st.button("Kuantum Sürücüyü Tetikle ve Akışı Başlat"):
                     continue
                 delta = chunk.choices[0].delta
                 
-                # DeepSeek R1 gibi modellerin içsel akıl yürütme süreçlerini yakala
+                # Akıl yürütme verisi akışı
                 if getattr(delta, "reasoning_content", None) is not None:
                     st.session_state["son_dusunme"] += delta.reasoning_content
                     reasoning_placeholder.markdown(
@@ -144,7 +160,7 @@ if st.button("Kuantum Sürücüyü Tetikle ve Akışı Başlat"):
                         unsafe_allow_html=True
                     )
                 
-                # Ana metin veya kod çıktılarını yakala
+                # Ana içerik akışı
                 if getattr(delta, "content", None) is not None:
                     st.session_state["son_cevap"] += delta.content
                     content_placeholder.markdown(
@@ -152,35 +168,43 @@ if st.button("Kuantum Sürücüyü Tetikle ve Akışı Başlat"):
                         unsafe_allow_html=True
                     )
             
-            st.success("🎯 Yanıt akışı milisaniyelik senkronizasyonla başarıyla tamamlandı.")
+            st.session_state["islem_tamamlandi"] = True
+            st.rerun()  # Akış bittiğinde ekranı temizle ve kararlı statik çıktı moduna geç
 
         except Exception as e:
             st.error(f"Sunucu Bağlantı Kesintisi: {str(e)}")
 
-# --- DURAĞAN EKRAN ÇIKTI KONTROLÜ ---
-# Eğer hafızada veri varsa, buton tetiklenmese bile ekranda sabit tut ve araçları göster
-if st.session_state["son_cevap"]:
+# --- KARARLI VE TEKİL ÇIKTI EKRANI ---
+# Eğer akış bittiyse veya hafızada veri varsa sadece BU blok çalışır (Çift basım engellendi)
+if st.session_state["islem_tamamlandi"] or (st.session_state["son_cevap"] and not tetiklendi):
+    
     if st.session_state["son_dusunme"]:
         st.markdown(f"**🕵️ Model Akıl Yürütme ve Düşünme Analizi:**\n<div class='reasoning-container'>{st.session_state['son_dusunme']}</div>", unsafe_allow_html=True)
     
+    # Şeffaf ve okunaklı ana çıktı
     st.markdown(f"**✨ Üretilen Çıktı / Kod Bloku:**\n<div class='chat-container'>{st.session_state['son_cevap']}</div>", unsafe_allow_html=True)
     
-    # --- PRO ÇIKTI YÖNETİM İSTASYONU ---
+    # --- YENİ ENTEGRE ÖZELLİKLER VE ARAÇLAR ---
     st.markdown("---")
-    st.subheader("💾 Gelişmiş Çıktı Yönetim İstasyonu")
     
+    # 1. Yeni Özellik: İstatistik Sayacı (Kelime & Karakter Dağılımı)
+    kelime_sayisi = len(st.session_state["son_cevap"].split())
+    karakter_sayisi = len(st.session_state["son_cevap"])
+    st.caption(f"📊 **Çıktı Analizi:** Toplam {kelime_sayisi} kelime | {karakter_sayisi} karakter üretildi.")
+    
+    st.subheader("💾 Gelişmiş Çıktı Yönetim İstasyonu")
     col_copy, col_down_txt, col_down_html = st.columns(3)
     
     with col_copy:
-        # Mobil kopyalamayı kolaylaştıran dahili metin alanı
-        st.text_area("📋 Kopyalamak İçin Seçin (Tümünü Seç Uyumlu):", value=st.session_state["son_cevap"], height=70)
-        st.caption("Kutunun içine dokunup (Ctrl+A ile) çıktının tamamını hızla kopyalayabilirsiniz.")
+        # 2. Yeni Özellik: Dahili Kopyalama ve Seçim Alanı
+        st.text_area("📋 Tek Tıkla Kopyalama Alanı (Ctrl+A / Tümünü Seç):", value=st.session_state["son_cevap"], height=80)
+        st.caption("Mobil veya masaüstünde kutunun içine dokunup tümünü kopyalayabilirsin.")
         
     with col_down_txt:
         st.download_button(
-            label="📄 Düz Metin (TXT) Olarak Telefona/PC'ye İndir",
+            label="📄 TXT Dosyası Olarak İndir",
             data=st.session_state["son_cevap"],
-            file_name="quantum_ai_output.txt",
+            file_name="quantum_output.txt",
             mime="text/plain"
         )
         
