@@ -1,15 +1,18 @@
 import streamlit as st
 from openai import OpenAI
+import streamlit.components.v1 as components
 import json
 import time
 import uuid
+import base64
+import io
 from datetime import datetime
 
 # ============================================================
 # SAYFA YAPILANDIRMASI
 # ============================================================
 st.set_page_config(
-    page_title="Quantum AI Studio Pro v12.0",
+    page_title="Quantum AI Studio Pro v13.0",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -266,9 +269,30 @@ hr { border-color: rgba(255,255,255,0.08) !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<div class='studio-title'>⚡ Quantum AI Studio Pro v12.0</div>", unsafe_allow_html=True)
-st.markdown("<p class='studio-subtitle'>Nvidia & Açık Kaynak Model Ordusu · Çoklu Oturum · Model Karşılaştırma · Beyaz Zeminli Okunaklı Çıktı</p>", unsafe_allow_html=True)
+st.markdown("<div class='studio-title'>⚡ Quantum AI Studio Pro v13.0</div>", unsafe_allow_html=True)
+st.markdown("<p class='studio-subtitle'>Nvidia & Açık Kaynak Model Ordusu · Görsel Yükleme · Sesli Okuma · Model Karşılaştırma · Beyaz Zeminli Okunaklı Çıktı</p>", unsafe_allow_html=True)
 st.write("")
+
+# ============================================================
+# GÖRSEL (VISION) DESTEĞİ OLAN MODELLER
+# ============================================================
+VISION_MODELLERI = {
+    "nvidia/neva-22b",
+    "meta/llama-3.2-90b-vision-instruct",
+}
+
+# ============================================================
+# HIZLI KOMUT ŞABLONLARI
+# ============================================================
+HIZLI_KOMUTLAR = {
+    "— Şablon Seçin —": "",
+    "🔧 Bu kodu optimize et": "Aşağıdaki kodu performans ve okunabilirlik açısından optimize et, değişiklikleri kısaca açıkla.",
+    "📝 Bu metni özetle": "Aşağıdaki metni ana fikirleri koruyarak kısa ve öz şekilde özetle.",
+    "🧪 Bu fonksiyon için test yaz": "Aşağıdaki kod için kapsamlı birim testleri yaz.",
+    "🐛 Hatayı bul ve düzelt": "Aşağıdaki kodda olası hataları bul, nedenini açıkla ve düzeltilmiş halini ver.",
+    "💬 Yorum satırları ekle": "Aşağıdaki koda açıklayıcı yorum satırları ekle.",
+    "🌍 İngilizceye çevir": "Aşağıdaki metni akıcı ve doğal bir İngilizceye çevir.",
+}
 
 # ============================================================
 # MODEL HAVUZU (GENİŞLETİLMİŞ VE EKSİKSİZ)
@@ -314,6 +338,14 @@ if "aktif_sohbet_id" not in st.session_state:
 
 if "favori_modeller" not in st.session_state:
     st.session_state["favori_modeller"] = []
+
+if "bekleyen_gorsel_b64" not in st.session_state:
+    st.session_state["bekleyen_gorsel_b64"] = None
+    st.session_state["bekleyen_gorsel_mime"] = None
+    st.session_state["gorsel_uploader_key"] = 0
+
+if "bekleyen_girdi" not in st.session_state:
+    st.session_state["bekleyen_girdi"] = ""
 
 aktif_id = st.session_state["aktif_sohbet_id"]
 aktif_sohbet = st.session_state["sohbetler"][aktif_id]
@@ -417,6 +449,41 @@ with st.sidebar:
             st.warning("Dosya okunamadı.")
 
     st.markdown("---")
+    st.header("🖼️ Görsel Ekle (Vision)")
+    st.caption("Görsel analizi için Nvidia NeVA 22B veya Llama 3.2 90B Vision modelini seçmeniz önerilir.")
+    yuklenen_gorsel = st.file_uploader(
+        "Resim yükle (.png, .jpg, .jpeg, .webp)", type=["png", "jpg", "jpeg", "webp"],
+        key=f"gorsel_yukle_{st.session_state['gorsel_uploader_key']}"
+    )
+    if yuklenen_gorsel is not None:
+        gorsel_bytes = yuklenen_gorsel.read()
+        st.session_state["bekleyen_gorsel_b64"] = base64.b64encode(gorsel_bytes).decode("utf-8")
+        st.session_state["bekleyen_gorsel_mime"] = yuklenen_gorsel.type or "image/png"
+        st.image(gorsel_bytes, caption="Bir sonraki mesaja eklenecek", use_container_width=True)
+        if aktif_model not in VISION_MODELLERI:
+            st.warning("⚠️ Seçili model görsel analiz desteklemiyor olabilir. NeVA 22B veya Llama 3.2 90B Vision'a geçmeniz önerilir.")
+        if st.button("🗑️ Görseli Kaldır", use_container_width=True):
+            st.session_state["bekleyen_gorsel_b64"] = None
+            st.session_state["bekleyen_gorsel_mime"] = None
+            st.session_state["gorsel_uploader_key"] += 1
+            st.rerun()
+
+    st.markdown("---")
+    st.header("🔊 Sesli Okuma (TTS) Ayarları")
+    tts_dil = st.selectbox("Okuma Dili:", ["Türkçe (tr-TR)", "English (en-US)"])
+    tts_lang_kodu = "tr-TR" if "Türkçe" in tts_dil else "en-US"
+    tts_hiz = st.slider("Konuşma Hızı:", 0.5, 2.0, 1.0, 0.1)
+    tts_ton = st.slider("Ses Tonu (Pitch):", 0.5, 2.0, 1.0, 0.1)
+    tts_otomatik = st.checkbox("🔈 Yeni yanıtları otomatik sesli oku")
+
+    st.markdown("---")
+    st.header("⚡ Hızlı Komut Şablonları")
+    hizli_secim = st.selectbox("Hazır komut seç:", list(HIZLI_KOMUTLAR.keys()))
+    if st.button("📤 Şablonu Gönder", use_container_width=True) and HIZLI_KOMUTLAR[hizli_secim]:
+        st.session_state["bekleyen_girdi"] = HIZLI_KOMUTLAR[hizli_secim]
+        st.rerun()
+
+    st.markdown("---")
     st.header("📥 Sohbet İçe Aktar")
     ice_aktarilan = st.file_uploader("Daha önce indirilen JSON sohbeti yükle", type=["json"], key="import_json")
     if ice_aktarilan is not None:
@@ -459,6 +526,40 @@ c5.metric("🤖 Aktif Model", secilen_etiket.split(" (")[0])
 st.markdown("---")
 
 # ============================================================
+# YARDIMCI FONKSİYON: SESLİ OKUMA (TTS) WIDGET'I
+# ============================================================
+def tts_widget(metin, anahtar, dil="tr-TR", hiz=1.0, ton=1.0, otomatik=False):
+    guvenli_metin = json.dumps(metin)
+    otomatik_cagri = f"seslendir_{anahtar}();" if otomatik else ""
+    html_kodu = f"""
+    <div style="margin-top:4px;">
+      <button onclick='seslendir_{anahtar}()'
+        style="background:#7c3aed;color:#fff;border:none;padding:5px 12px;border-radius:8px;
+               cursor:pointer;font-size:0.78rem;margin-right:6px;font-family:Inter,sans-serif;">
+        🔊 Dinle
+      </button>
+      <button onclick='window.speechSynthesis.cancel()'
+        style="background:#e2e8f0;color:#0f172a;border:none;padding:5px 12px;border-radius:8px;
+               cursor:pointer;font-size:0.78rem;font-family:Inter,sans-serif;">
+        ⏹ Durdur
+      </button>
+    </div>
+    <script>
+    function seslendir_{anahtar}() {{
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance({guvenli_metin});
+        utter.lang = "{dil}";
+        utter.rate = {hiz};
+        utter.pitch = {ton};
+        window.speechSynthesis.speak(utter);
+    }}
+    {otomatik_cagri}
+    </script>
+    """
+    components.html(html_kodu, height=44)
+
+
+# ============================================================
 # GEÇMİŞ SOHBETİ GÖSTER (ARAMA FİLTRESİ İLE)
 # ============================================================
 for idx, mesaj in enumerate(aktif_sohbet["mesajlar"]):
@@ -466,10 +567,13 @@ for idx, mesaj in enumerate(aktif_sohbet["mesajlar"]):
         continue
     avatar = "🧑‍💻" if mesaj["role"] == "user" else "⚡"
     with st.chat_message(mesaj["role"], avatar=avatar):
+        if mesaj.get("gorsel_b64"):
+            st.image(io.BytesIO(base64.b64decode(mesaj["gorsel_b64"])), width=280)
         if mesaj.get("dusunme"):
             st.markdown(f"<div class='reasoning-container'>🕵️ <b>Akıl Yürütme:</b><br>{mesaj['dusunme']}</div>", unsafe_allow_html=True)
         st.markdown(mesaj["content"])
         if mesaj["role"] == "assistant":
+            tts_widget(mesaj["content"], f"gecmis_{idx}", tts_lang_kodu, tts_hiz, tts_ton, otomatik=False)
             with st.expander("📋 Bu yanıtı kopyala / görüntüle", expanded=False):
                 st.code(mesaj["content"], language=None)
 
@@ -513,6 +617,10 @@ def modelden_yanit_al(client, model, mesaj_listesi, temperature, top_p, max_toke
 # ============================================================
 kullanici_girdisi = st.chat_input("Komutunuzu yazın ve Enter'a basın...")
 
+if not kullanici_girdisi and st.session_state.get("bekleyen_girdi"):
+    kullanici_girdisi = st.session_state["bekleyen_girdi"]
+    st.session_state["bekleyen_girdi"] = ""
+
 if kullanici_girdisi:
     if not api_key:
         st.error("🚨 Sistemde tanımlı geçerli bir Nvidia API anahtarı bulunamadı!")
@@ -521,13 +629,21 @@ if kullanici_girdisi:
         if dosya_icerigi:
             nihai_girdi = f"{kullanici_girdisi}\n\n--- Eklenen Dosya İçeriği ---\n{dosya_icerigi}"
 
-        aktif_sohbet["mesajlar"].append({"role": "user", "content": kullanici_girdisi, "dusunme": ""})
+        gorsel_b64 = st.session_state.get("bekleyen_gorsel_b64")
+        gorsel_mime = st.session_state.get("bekleyen_gorsel_mime")
+
+        aktif_sohbet["mesajlar"].append({
+            "role": "user", "content": kullanici_girdisi, "dusunme": "",
+            "gorsel_b64": gorsel_b64
+        })
 
         # Sohbet ilk mesajsa, oturuma otomatik başlık ver
         if kullanici_mesaj_sayisi == 0:
             aktif_sohbet["ad"] = (kullanici_girdisi[:28] + "…") if len(kullanici_girdisi) > 28 else kullanici_girdisi
 
         with st.chat_message("user", avatar="🧑‍💻"):
+            if gorsel_b64:
+                st.image(io.BytesIO(base64.b64decode(gorsel_b64)), width=280)
             st.markdown(kullanici_girdisi)
 
         try:
@@ -535,7 +651,22 @@ if kullanici_girdisi:
             gecmis_mesajlar = [{"role": "system", "content": system_prompt}]
             for m in aktif_sohbet["mesajlar"][:-1]:
                 gecmis_mesajlar.append({"role": m["role"], "content": m["content"]})
-            gecmis_mesajlar.append({"role": "user", "content": nihai_girdi})
+
+            # Son kullanıcı turu: görsel varsa çok-modlu (multimodal) içerik oluştur
+            if gorsel_b64:
+                gecmis_mesajlar.append({
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": nihai_girdi},
+                        {"type": "image_url", "image_url": {"url": f"data:{gorsel_mime};base64,{gorsel_b64}"}}
+                    ]
+                })
+                # Görsel tek seferlik kullanılır, gönderildikten sonra temizlenir
+                st.session_state["bekleyen_gorsel_b64"] = None
+                st.session_state["bekleyen_gorsel_mime"] = None
+                st.session_state["gorsel_uploader_key"] += 1
+            else:
+                gecmis_mesajlar.append({"role": "user", "content": nihai_girdi})
 
             if karsilastirma_aktif and len(karsilastirma_modelleri) >= 2:
                 # ---- MODEL KARŞILAŞTIRMA MODU ----
@@ -555,13 +686,14 @@ if kullanici_girdisi:
                             )
                             sure = round(time.time() - baslangic, 2)
                             st.caption(f"⏱️ {sure} sn · {len(cevap.split())} kelime")
+                            tts_widget(cevap, f"karsilastirma_{uuid.uuid4().hex[:8]}", tts_lang_kodu, tts_hiz, tts_ton)
                         except Exception as e:
                             st.error(f"Hata: {e}")
                 # Karşılaştırma modunda ilk seçilen modelin cevabı geçmişe kaydedilir
                 aktif_sohbet["mesajlar"].append({
                     "role": "assistant",
                     "content": f"*(Model karşılaştırma modu çalıştırıldı: {', '.join(karsilastirma_modelleri)})*",
-                    "dusunme": ""
+                    "dusunme": "", "gorsel_b64": None
                 })
             else:
                 # ---- TEKİL MODEL MODU ----
@@ -577,8 +709,9 @@ if kullanici_girdisi:
                     sure = round(time.time() - baslangic, 2)
                     kelime_sn = round(len(cevap.split()) / sure, 1) if sure > 0 else 0
                     st.caption(f"⏱️ Yanıt süresi: {sure} sn · {len(cevap.split())} kelime · ~{kelime_sn} kelime/sn")
+                    tts_widget(cevap, "yeni_yanit", tts_lang_kodu, tts_hiz, tts_ton, otomatik=tts_otomatik)
 
-                aktif_sohbet["mesajlar"].append({"role": "assistant", "content": cevap, "dusunme": dusunme})
+                aktif_sohbet["mesajlar"].append({"role": "assistant", "content": cevap, "dusunme": dusunme, "gorsel_b64": None})
 
         except Exception as e:
             st.error(f"Bağlantı Hatası: {str(e)}")
