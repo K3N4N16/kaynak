@@ -50,18 +50,82 @@ div[data-testid="stMetric"] {
 }
 div[data-testid="stMetricValue"] { color: #a78bfa !important; }
 
-.stTextArea textarea, .stTextInput input {
-    background-color: rgba(255,255,255,0.05) !important;
-    color: #e6e9f5 !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
+/* ==== TÜM METİN GİRİŞ ALANLARI: BEYAZ ZEMİN + SİYAH YAZI (HER YERDE, SIDEBAR DAHİL) ==== */
+/* Bu kural bloğu, sidebar'ın genel "tüm yazıları açık renk yap" kuralından SONRA
+   geldiği ve daha spesifik olduğu için önceliklidir; input/select içindeki yazılar
+   her zaman siyah, zemin her zaman beyaz kalır. */
+
+.stTextArea textarea,
+.stTextInput input,
+div[data-baseweb="base-input"],
+div[data-baseweb="base-input"] input,
+div[data-baseweb="base-input"] textarea,
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] input,
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInputTextArea"],
+.stMultiSelect div[data-baseweb="select"] > div {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
     border-radius: 10px;
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a !important;
 }
-.stTextArea textarea:focus, .stTextInput input:focus {
+
+/* Selectbox / multiselect içindeki seçili metin ve ikonlar */
+div[data-baseweb="select"] * ,
+[data-testid="stChatInput"] * {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Multiselect üzerindeki seçili "chip / tag" etiketleri */
+div[data-baseweb="tag"] {
+    background-color: #7c3aed !important;
+}
+div[data-baseweb="tag"] span, div[data-baseweb="tag"] svg {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Açılır liste (dropdown) - portal olarak sayfanın dışına render edilir */
+ul[data-testid="stSelectboxVirtualDropdown"],
+div[data-baseweb="popover"] ul,
+div[data-baseweb="menu"] {
+    background-color: #ffffff !important;
+}
+ul[data-testid="stSelectboxVirtualDropdown"] li,
+div[data-baseweb="popover"] li,
+div[data-baseweb="menu"] li {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
+ul[data-testid="stSelectboxVirtualDropdown"] li:hover,
+div[data-baseweb="popover"] li:hover,
+div[data-baseweb="menu"] li:hover {
+    background-color: #ede9fe !important;
+    color: #0f172a !important;
+}
+
+/* Placeholder rengi - okunaklı gri ton */
+.stTextArea textarea::placeholder,
+.stTextInput input::placeholder,
+[data-testid="stChatInput"] textarea::placeholder {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+    opacity: 1 !important;
+}
+
+.stTextArea textarea:focus, .stTextInput input:focus,
+div[data-baseweb="select"]:focus-within > div,
+[data-testid="stChatInput"] textarea:focus {
     border: 1px solid #7c3aed !important;
     box-shadow: 0 0 0 2px rgba(124,58,237,0.25) !important;
 }
 
-.stSelectbox label, .stSlider label, .stTextArea label, .stTextInput label, .stRadio label { color: #cbd5e1 !important; font-weight: 500; }
+.stSelectbox label, .stSlider label, .stTextArea label, .stTextInput label,
+.stRadio label, .stMultiSelect label, .stFileUploader label { color: #cbd5e1 !important; font-weight: 500; }
 
 div.stButton > button {
     background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
